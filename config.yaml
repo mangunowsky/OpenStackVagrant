@@ -1,0 +1,5 @@
+hostname: openstack-manager
+
+bridge_int: enp34s0
+
+box_name: 'ubuntu/focal64'

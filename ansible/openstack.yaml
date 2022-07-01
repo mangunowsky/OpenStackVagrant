@@ -1,0 +1,74 @@
+---
+- name: Install devstack
+  hosts: devstack
+
+  tasks:
+  - include_vars: devstack_vars.yaml
+
+  - name: Ensure group "stack" exists
+    become: yes
+    ansible.builtin.group:
+      name: stack
+      state: present
+
+  - name: Allow 'stack' group to have passwordless sudo
+    become: yes
+    lineinfile:
+      dest: /etc/sudoers
+      state: present
+      regexp: '^%stack'
+      line: '%stack ALL=(ALL) NOPASSWD: ALL'
+      validate: visudo -cf %s
+
+  - name: Add sudoers users to wheel group
+    become: yes
+    user:
+      name: stack
+      groups: stack
+      append: yes
+
+  - name: Add stack user and config SHELL & HOME_DIR
+    become: True
+    ansible.builtin.user:
+      name: stack
+      group: stack
+      shell: /bin/bash
+      home: /opt/stack 
+
+  # - name: Add stack user to sudoers
+  #   become: True
+  #   ansible.builtin.command: 'echo "stack ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/stack'
+
+  - name: work around permission issue
+    become: yes
+    ansible.builtin.command: git config --global --add safe.directory /opt/stack/devstack
+
+  - name: Clone DevStack repo
+    become: True
+    become_user: stack
+    ansible.builtin.git:
+      repo: 'https://opendev.org/openstack/devstack.git'
+      dest: /opt/stack/devstack
+      version: "{{ DEVSTACK_VERSION }}"
+
+  - name: Install acl package
+    become: yes
+    ansible.builtin.apt:
+      name: acl
+      state: present
+
+  - name: Copy Devstack config file
+    become: True
+    ansible.builtin.copy:
+      src: local.conf
+      dest: /opt/stack/devstack/
+      owner: stack
+      group: stack
+      mode: '0777'
+
+  - name: Install DevStack
+    become: yes
+    become_user: stack
+    ansible.builtin.command: /opt/stack/devstack/stack.sh
+    # args:
+    #   chdir: /opt/stack/devstack/
