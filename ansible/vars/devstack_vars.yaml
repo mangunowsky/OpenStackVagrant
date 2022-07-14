@@ -1,1 +1,2 @@
 DEVSTACK_VERSION: stable/yoga
+NETWORK_INTERFACE: enp0s3

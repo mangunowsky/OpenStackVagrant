@@ -5,6 +5,12 @@
   tasks:
   - include_vars: devstack_vars.yaml
 
+  - name: Install acl package
+    become: yes
+    ansible.builtin.apt:
+      name: acl
+      state: present
+
   - name: Ensure group "stack" exists
     become: yes
     ansible.builtin.group:
@@ -35,12 +41,13 @@
       shell: /bin/bash
       home: /opt/stack 
 
-  # - name: Add stack user to sudoers
-  #   become: True
-  #   ansible.builtin.command: 'echo "stack ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/stack'
+  - name: Add stack user to sudoers
+    become: True
+    ansible.builtin.command: 'echo "stack ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/stack'
 
-  - name: work around permission issue
+  - name: Workaround permission issue
     become: yes
+    become_user: stack
     ansible.builtin.command: git config --global --add safe.directory /opt/stack/devstack
 
   - name: Clone DevStack repo
@@ -51,12 +58,6 @@
       dest: /opt/stack/devstack
       version: "{{ DEVSTACK_VERSION }}"
 
-  - name: Install acl package
-    become: yes
-    ansible.builtin.apt:
-      name: acl
-      state: present
-
   - name: Copy Devstack config file
     become: True
     ansible.builtin.copy:
@@ -66,9 +67,21 @@
       group: stack
       mode: '0777'
 
+  - name: Copy config.sh
+    become: True
+    ansible.builtin.copy:
+      src: config.sh
+      dest: /opt/stack/
+      owner: stack
+      group: stack
+      mode: '0777'
+  
+  - name: DevStack init config
+    become: True
+    become_user: stack
+    command: sh /opt/stack/config.sh "{{ NETWORK_INTERFACE }}"
+  
   - name: Install DevStack
     become: yes
     become_user: stack
     ansible.builtin.command: /opt/stack/devstack/stack.sh
-    # args:
-    #   chdir: /opt/stack/devstack/
