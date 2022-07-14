@@ -11,6 +11,7 @@ def configure_vm(name, vm, conf)
   vm.hostname = conf["#{name}"] || name
   vm.network :public_network, :bridge => conf['bridge_int'], :use_dhcp_assigned_default_route => true
 
+
   vm.provider :virtualbox do |vb|
     vb.customize ["modifyvm", :id, "--nicpromisc2", "allow-all"]
   end
